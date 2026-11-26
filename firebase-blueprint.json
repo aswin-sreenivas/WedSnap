@@ -1,0 +1,584 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Authenticated organizer or photographer profile with strictly isolated PII and role metadata.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Firebase Auth UID",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "maxLength": 254
+        },
+        "displayName": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "photoURL": {
+          "type": "string",
+          "maxLength": 512
+        },
+        "role": {
+          "type": "string",
+          "enum": ["organizer", "photographer", "admin"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "email", "displayName", "createdAt", "updatedAt"]
+    },
+    "WeddingEvent": {
+      "title": "WeddingEvent",
+      "description": "A wedding photography event managed by an organizer and discoverable by guests via unique slug.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerUid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "slug": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 80,
+          "pattern": "^[a-z0-9-]+$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 140
+        },
+        "coupleNames": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 140
+        },
+        "eventDate": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 32
+        },
+        "welcomeMessage": {
+          "type": "string",
+          "maxLength": 800
+        },
+        "coverPhotoUrl": {
+          "type": "string",
+          "maxLength": 512
+        },
+        "driveFolderId": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "driveFolderName": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "similarityThreshold": {
+          "type": "number"
+        },
+        "totalPhotos": {
+          "type": "integer"
+        },
+        "processedPhotos": {
+          "type": "integer"
+        },
+        "totalFaces": {
+          "type": "integer"
+        },
+        "isPublished": {
+          "type": "boolean"
+        },
+        "discoverableInDirectory": {
+          "type": "boolean",
+          "description": "Explicit organizer consent for indexing the public event landing page in search engines and directory."
+        },
+        "visibility": {
+          "type": "string",
+          "enum": ["private", "unlisted", "directory"]
+        },
+        "retentionDays": {
+          "type": "integer"
+        },
+        "modelVersion": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "indexedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "ownerUid",
+        "slug",
+        "title",
+        "coupleNames",
+        "eventDate",
+        "welcomeMessage",
+        "coverPhotoUrl",
+        "similarityThreshold",
+        "totalPhotos",
+        "processedPhotos",
+        "totalFaces",
+        "isPublished",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "EventPhoto": {
+      "title": "EventPhoto",
+      "description": "Metadata for a wedding photograph synced from Google Drive or uploaded to managed storage.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "eventId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerUid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "isPublished": {
+          "type": "boolean"
+        },
+        "driveFileId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "sourceFileId": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "fileName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 260
+        },
+        "mimeType": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "fileSize": {
+          "type": "integer"
+        },
+        "width": {
+          "type": "integer"
+        },
+        "height": {
+          "type": "integer"
+        },
+        "driveModifiedTime": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "faceStatus": {
+          "type": "string",
+          "enum": ["pending", "processed", "no_faces", "failed"]
+        },
+        "processingStatus": {
+          "type": "string",
+          "enum": ["pending", "processing", "processed", "no_faces", "failed"]
+        },
+        "faceCount": {
+          "type": "integer"
+        },
+        "modelVersion": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "thumbnailUrl": {
+          "type": "string",
+          "maxLength": 1024
+        },
+        "storageUrl": {
+          "type": "string",
+          "maxLength": 1024
+        },
+        "storagePath": {
+          "type": "string",
+          "maxLength": 512
+        },
+        "thumbnailPath": {
+          "type": "string",
+          "maxLength": 512
+        },
+        "indexedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "syncedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "eventId",
+        "ownerUid",
+        "isPublished",
+        "driveFileId",
+        "fileName",
+        "mimeType",
+        "fileSize",
+        "faceStatus",
+        "faceCount",
+        "syncedAt"
+      ]
+    },
+    "FaceEmbedding": {
+      "title": "FaceEmbedding",
+      "description": "Detected face bounding box and 128-dimensional embedding vector for an indexed wedding photo.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "eventId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "photoId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerUid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "isPublished": {
+          "type": "boolean"
+        },
+        "embedding": {
+          "type": "array"
+        },
+        "boxX": {
+          "type": "number"
+        },
+        "boxY": {
+          "type": "number"
+        },
+        "boxWidth": {
+          "type": "number"
+        },
+        "boxHeight": {
+          "type": "number"
+        },
+        "detectionScore": {
+          "type": "number"
+        },
+        "modelVersion": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "eventId",
+        "photoId",
+        "ownerUid",
+        "isPublished",
+        "embedding",
+        "boxX",
+        "boxY",
+        "boxWidth",
+        "boxHeight",
+        "detectionScore",
+        "createdAt"
+      ]
+    },
+    "IndexingJob": {
+      "title": "IndexingJob",
+      "description": "Idempotent background face-indexing job tracking status, attempts, errors, and timestamps.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "eventId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "photoId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerUid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "sourceFileId": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "fileName": {
+          "type": "string",
+          "maxLength": 260
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "processing", "completed", "failed"]
+        },
+        "attempts": {
+          "type": "integer"
+        },
+        "maxAttempts": {
+          "type": "integer"
+        },
+        "modelVersion": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "lastError": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "startedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "completedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "eventId",
+        "photoId",
+        "ownerUid",
+        "status",
+        "attempts",
+        "maxAttempts",
+        "modelVersion",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "EventAnalytic": {
+      "title": "EventAnalytic",
+      "description": "Privacy-safe aggregate gallery usage counters (never stores biometric vectors or guest PII).",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "eventId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerUid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "metricDate": {
+          "type": "string",
+          "maxLength": 16
+        },
+        "scansCount": {
+          "type": "integer"
+        },
+        "matchesFoundCount": {
+          "type": "integer"
+        },
+        "downloadsCount": {
+          "type": "integer"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "eventId",
+        "ownerUid",
+        "metricDate",
+        "scansCount",
+        "matchesFoundCount",
+        "downloadsCount",
+        "updatedAt"
+      ]
+    },
+    "ContactInquiry": {
+      "title": "ContactInquiry",
+      "description": "Contact form submission stored persistently in Firestore for admin review.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "maxLength": 254
+        },
+        "role": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "message": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 2000
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["id", "name", "email", "role", "message", "createdAt"]
+    },
+    "AppSetting": {
+      "title": "AppSetting",
+      "description": "Admin-managed global retention, model version, and backup policy configuration.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "defaultRetentionDays": {
+          "type": "integer"
+        },
+        "activeModelVersion": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "backupSchedule": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["id", "defaultRetentionDays", "activeModelVersion", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": {
+        "$ref": "#/entities/UserProfile"
+      },
+      "description": "Private authenticated organizer profile data (PII isolated)."
+    },
+    "/events/{eventId}": {
+      "schema": {
+        "$ref": "#/entities/WeddingEvent"
+      },
+      "description": "Wedding event metadata, retention settings, and counters."
+    },
+    "/events/{eventId}/photos/{photoId}": {
+      "schema": {
+        "$ref": "#/entities/EventPhoto"
+      },
+      "description": "Deduplicated wedding photographs synced from Google Drive or managed Firebase Storage."
+    },
+    "/events/{eventId}/faces/{faceId}": {
+      "schema": {
+        "$ref": "#/entities/FaceEmbedding"
+      },
+      "description": "Primary indexed 128-d face embeddings detected within an event's wedding photos."
+    },
+    "/events/{eventId}/faceEmbeddings/{faceId}": {
+      "schema": {
+        "$ref": "#/entities/FaceEmbedding"
+      },
+      "description": "Optional alias subcollection for indexed 128-d face embeddings."
+    },
+    "/events/{eventId}/indexingJobs/{jobId}": {
+      "schema": {
+        "$ref": "#/entities/IndexingJob"
+      },
+      "description": "Idempotent background face indexing job records with retry and error tracking."
+    },
+    "/events/{eventId}/analytics/{recordId}": {
+      "schema": {
+        "$ref": "#/entities/EventAnalytic"
+      },
+      "description": "Aggregate non-PII event analytics counters."
+    },
+    "/inquiries/{inquiryId}": {
+      "schema": {
+        "$ref": "#/entities/ContactInquiry"
+      },
+      "description": "Persistent contact form inquiries replacing ephemeral local disk logs."
+    },
+    "/appSettings/{settingId}": {
+      "schema": {
+        "$ref": "#/entities/AppSetting"
+      },
+      "description": "Global application configuration managed by platform admins."
+    }
+  }
+}

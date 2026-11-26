@@ -1,0 +1,6 @@
+{
+  "name": "WedSnap – AI Wedding Photo Finder",
+  "description": "Discover every wedding photograph you appear in using privacy-first AI face matching synced with Google Drive.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

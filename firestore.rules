@@ -1,0 +1,447 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isVerified() && request.auth.token.email == 'shadowstack.web@gmail.com';
+    }
+
+    function isEventOwner(eventId) {
+      return isVerified()
+        && exists(/databases/$(database)/documents/events/$(eventId))
+        && (get(/databases/$(database)/documents/events/$(eventId)).data.ownerUid == request.auth.uid || isAdmin());
+    }
+
+    function isValidUserProfile(data) {
+      return data.keys().hasAll(['uid', 'email', 'displayName', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'email', 'displayName', 'photoURL', 'role', 'createdAt', 'updatedAt'])
+        && isValidId(data.uid)
+        && data.email is string && data.email.size() >= 3 && data.email.size() <= 254
+        && data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 120
+        && (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() <= 512))
+        && (!('role' in data) || data.role in ['organizer', 'photographer', 'admin'])
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidWeddingEvent(data) {
+      return data.keys().hasAll([
+          'id', 'ownerUid', 'slug', 'title', 'coupleNames', 'eventDate',
+          'welcomeMessage', 'coverPhotoUrl', 'similarityThreshold',
+          'totalPhotos', 'processedPhotos', 'totalFaces', 'isPublished',
+          'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'ownerUid', 'slug', 'title', 'coupleNames', 'eventDate',
+          'welcomeMessage', 'coverPhotoUrl', 'driveFolderId', 'driveFolderName',
+          'similarityThreshold', 'totalPhotos', 'processedPhotos', 'totalFaces',
+          'isPublished', 'discoverableInDirectory', 'visibility', 'retentionDays',
+          'modelVersion', 'indexedAt', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.id)
+        && isValidId(data.ownerUid)
+        && data.slug is string && data.slug.size() >= 3 && data.slug.size() <= 80 && data.slug.matches('^[a-z0-9-]+$')
+        && data.title is string && data.title.size() >= 2 && data.title.size() <= 140
+        && data.coupleNames is string && data.coupleNames.size() >= 2 && data.coupleNames.size() <= 140
+        && data.eventDate is string && data.eventDate.size() >= 4 && data.eventDate.size() <= 32
+        && data.welcomeMessage is string && data.welcomeMessage.size() <= 800
+        && data.coverPhotoUrl is string && data.coverPhotoUrl.size() >= 1 && data.coverPhotoUrl.size() <= 512
+        && (!('driveFolderId' in data) || (data.driveFolderId is string && data.driveFolderId.size() <= 256))
+        && (!('driveFolderName' in data) || (data.driveFolderName is string && data.driveFolderName.size() <= 256))
+        && data.similarityThreshold is number && data.similarityThreshold >= 0.3 && data.similarityThreshold <= 0.75
+        && data.totalPhotos is int && data.totalPhotos >= 0 && data.totalPhotos <= 100000
+        && data.processedPhotos is int && data.processedPhotos >= 0 && data.processedPhotos <= 100000
+        && data.totalFaces is int && data.totalFaces >= 0 && data.totalFaces <= 500000
+        && data.isPublished is bool
+        && (!('discoverableInDirectory' in data) || data.discoverableInDirectory is bool)
+        && (!('visibility' in data) || data.visibility in ['private', 'unlisted', 'directory'])
+        && (!('retentionDays' in data) || (data.retentionDays is int && data.retentionDays >= 0 && data.retentionDays <= 3650))
+        && (!('modelVersion' in data) || (data.modelVersion is string && data.modelVersion.size() <= 64))
+        && (!('indexedAt' in data) || data.indexedAt is timestamp)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidEventPhoto(data, parentEventId) {
+      return data.keys().hasAll([
+          'id', 'eventId', 'ownerUid', 'isPublished', 'driveFileId',
+          'fileName', 'mimeType', 'fileSize', 'faceStatus', 'faceCount', 'syncedAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'eventId', 'ownerUid', 'isPublished', 'driveFileId', 'sourceFileId',
+          'fileName', 'mimeType', 'fileSize', 'width', 'height', 'driveModifiedTime',
+          'faceStatus', 'processingStatus', 'faceCount', 'modelVersion',
+          'thumbnailUrl', 'storageUrl', 'storagePath', 'thumbnailPath',
+          'indexedAt', 'syncedAt'
+        ])
+        && isValidId(data.id)
+        && data.eventId == parentEventId
+        && isValidId(data.ownerUid)
+        && data.isPublished is bool
+        && data.driveFileId is string && data.driveFileId.size() >= 1 && data.driveFileId.size() <= 256
+        && (!('sourceFileId' in data) || (data.sourceFileId is string && data.sourceFileId.size() <= 256))
+        && data.fileName is string && data.fileName.size() >= 1 && data.fileName.size() <= 260
+        && data.mimeType is string && data.mimeType.size() >= 3 && data.mimeType.size() <= 100
+        && data.fileSize is int && data.fileSize >= 0
+        && (!('width' in data) || (data.width is int && data.width >= 0 && data.width <= 30000))
+        && (!('height' in data) || (data.height is int && data.height >= 0 && data.height <= 30000))
+        && (!('driveModifiedTime' in data) || (data.driveModifiedTime is string && data.driveModifiedTime.size() <= 64))
+        && data.faceStatus in ['pending', 'processed', 'no_faces', 'failed']
+        && (!('processingStatus' in data) || data.processingStatus in ['pending', 'processing', 'processed', 'no_faces', 'failed'])
+        && data.faceCount is int && data.faceCount >= 0 && data.faceCount <= 500
+        && (!('modelVersion' in data) || (data.modelVersion is string && data.modelVersion.size() <= 64))
+        && (!('thumbnailUrl' in data) || (data.thumbnailUrl is string && data.thumbnailUrl.size() <= 1024))
+        && (!('storageUrl' in data) || (data.storageUrl is string && data.storageUrl.size() <= 1024))
+        && (!('storagePath' in data) || (data.storagePath is string && data.storagePath.size() <= 512))
+        && (!('thumbnailPath' in data) || (data.thumbnailPath is string && data.thumbnailPath.size() <= 512))
+        && (!('indexedAt' in data) || data.indexedAt is timestamp)
+        && data.syncedAt is timestamp;
+    }
+
+    function isValidFaceEmbedding(data, parentEventId) {
+      return data.keys().hasAll([
+          'id', 'eventId', 'photoId', 'ownerUid', 'isPublished',
+          'embedding', 'boxX', 'boxY', 'boxWidth', 'boxHeight',
+          'detectionScore', 'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'eventId', 'photoId', 'ownerUid', 'isPublished',
+          'embedding', 'boxX', 'boxY', 'boxWidth', 'boxHeight',
+          'detectionScore', 'modelVersion', 'createdAt'
+        ])
+        && isValidId(data.id)
+        && data.eventId == parentEventId
+        && isValidId(data.photoId)
+        && isValidId(data.ownerUid)
+        && data.isPublished is bool
+        && data.embedding is list && data.embedding.size() == 128 && data.embedding[0] is number
+        && data.boxX is number && data.boxY is number && data.boxWidth is number && data.boxHeight is number
+        && data.detectionScore is number && data.detectionScore >= 0 && data.detectionScore <= 1
+        && (!('modelVersion' in data) || (data.modelVersion is string && data.modelVersion.size() <= 64))
+        && data.createdAt is timestamp;
+    }
+
+    function isValidIndexingJob(data, parentEventId) {
+      return data.keys().hasAll([
+          'id', 'eventId', 'photoId', 'ownerUid', 'status',
+          'attempts', 'maxAttempts', 'modelVersion', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'eventId', 'photoId', 'ownerUid', 'sourceFileId', 'fileName',
+          'status', 'attempts', 'maxAttempts', 'modelVersion', 'lastError',
+          'createdAt', 'updatedAt', 'startedAt', 'completedAt'
+        ])
+        && isValidId(data.id)
+        && data.eventId == parentEventId
+        && isValidId(data.photoId)
+        && isValidId(data.ownerUid)
+        && (!('sourceFileId' in data) || (data.sourceFileId is string && data.sourceFileId.size() <= 256))
+        && (!('fileName' in data) || (data.fileName is string && data.fileName.size() <= 260))
+        && data.status in ['pending', 'processing', 'completed', 'failed']
+        && data.attempts is int && data.attempts >= 0 && data.attempts <= 20
+        && data.maxAttempts is int && data.maxAttempts >= 1 && data.maxAttempts <= 20
+        && data.modelVersion is string && data.modelVersion.size() >= 1 && data.modelVersion.size() <= 64
+        && (!('lastError' in data) || (data.lastError is string && data.lastError.size() <= 500))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp
+        && (!('startedAt' in data) || data.startedAt is timestamp)
+        && (!('completedAt' in data) || data.completedAt is timestamp);
+    }
+
+    function isValidEventAnalytic(data, parentEventId) {
+      return data.keys().hasAll([
+          'id', 'eventId', 'ownerUid', 'metricDate',
+          'scansCount', 'matchesFoundCount', 'downloadsCount', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'eventId', 'ownerUid', 'metricDate',
+          'scansCount', 'matchesFoundCount', 'downloadsCount', 'updatedAt'
+        ])
+        && isValidId(data.id)
+        && data.eventId == parentEventId
+        && isValidId(data.ownerUid)
+        && data.metricDate is string && data.metricDate.size() == 10 && data.metricDate.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+        && data.scansCount is int && data.scansCount >= 0 && data.scansCount <= 10000000
+        && data.matchesFoundCount is int && data.matchesFoundCount >= 0 && data.matchesFoundCount <= 10000000
+        && data.downloadsCount is int && data.downloadsCount >= 0 && data.downloadsCount <= 10000000
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidContactInquiry(data) {
+      return data.keys().hasAll(['id', 'name', 'email', 'role', 'message', 'createdAt'])
+        && data.keys().hasOnly(['id', 'name', 'email', 'role', 'message', 'createdAt'])
+        && isValidId(data.id)
+        && data.name is string && data.name.size() >= 2 && data.name.size() <= 100
+        && data.email is string && data.email.size() >= 5 && data.email.size() <= 254
+        && data.role is string && data.role.size() >= 1 && data.role.size() <= 80
+        && data.message is string && data.message.size() >= 10 && data.message.size() <= 2000
+        && data.createdAt is timestamp;
+    }
+
+    function isValidAppSetting(data) {
+      return data.keys().hasAll(['id', 'defaultRetentionDays', 'activeModelVersion', 'updatedAt'])
+        && data.keys().hasOnly(['id', 'defaultRetentionDays', 'activeModelVersion', 'backupSchedule', 'updatedAt'])
+        && isValidId(data.id)
+        && data.defaultRetentionDays is int && data.defaultRetentionDays >= 0 && data.defaultRetentionDays <= 3650
+        && data.activeModelVersion is string && data.activeModelVersion.size() >= 1 && data.activeModelVersion.size() <= 64
+        && (!('backupSchedule' in data) || (data.backupSchedule is string && data.backupSchedule.size() <= 64))
+        && data.updatedAt is timestamp;
+    }
+
+    // Startup connection validation probe
+    match /test/connection {
+      allow get: if true;
+    }
+
+    // Isolated private user profiles
+    match /users/{userId} {
+      allow get: if isValidId(userId) && (isOwner(userId) || isAdmin());
+      allow list: if isAdmin();
+      allow create: if isVerified()
+        && isValidId(userId)
+        && isOwner(userId)
+        && isValidUserProfile(incoming())
+        && incoming().uid == request.auth.uid
+        && (!('role' in incoming()) || incoming().role in ['organizer', 'photographer'] || isAdmin())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isVerified()
+        && isValidId(userId)
+        && (isOwner(userId) || isAdmin())
+        && isValidUserProfile(incoming())
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (isAdmin() || incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL', 'updatedAt']));
+    }
+
+    // Persistent contact inquiries (public write-only creation; strictly admin read/delete)
+    match /inquiries/{inquiryId} {
+      allow get, list, update, delete: if isAdmin();
+      allow create: if isValidId(inquiryId)
+        && isValidContactInquiry(incoming())
+        && incoming().id == inquiryId
+        && incoming().createdAt == request.time;
+    }
+
+    // Admin-only global settings
+    match /appSettings/{settingId} {
+      allow get, list: if isValidId(settingId) && isAdmin();
+      allow create, update, delete: if isValidId(settingId)
+        && isAdmin()
+        && (request.method == 'delete' || isValidAppSetting(incoming()));
+    }
+
+    // Wedding Events
+    match /events/{eventId} {
+      allow get: if isValidId(eventId)
+        && (resource.data.isPublished == true || (isSignedIn() && resource.data.ownerUid == request.auth.uid) || isAdmin());
+      allow list: if resource.data.isPublished == true
+        || (isSignedIn() && resource.data.ownerUid == request.auth.uid)
+        || isAdmin();
+      allow create: if isVerified()
+        && isValidId(eventId)
+        && isValidWeddingEvent(incoming())
+        && incoming().id == eventId
+        && incoming().ownerUid == request.auth.uid
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isVerified()
+        && isValidId(eventId)
+        && isValidWeddingEvent(incoming())
+        && (existing().ownerUid == request.auth.uid || isAdmin())
+        && incoming().id == existing().id
+        && incoming().ownerUid == existing().ownerUid
+        && incoming().slug == existing().slug
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (isAdmin() || incoming().diff(existing()).affectedKeys().hasOnly([
+          'title', 'coupleNames', 'eventDate', 'welcomeMessage',
+          'coverPhotoUrl', 'driveFolderId', 'driveFolderName',
+          'similarityThreshold', 'totalPhotos', 'processedPhotos',
+          'totalFaces', 'isPublished', 'discoverableInDirectory',
+          'visibility', 'retentionDays', 'modelVersion', 'indexedAt', 'updatedAt'
+        ]));
+      allow delete: if isVerified()
+        && isValidId(eventId)
+        && (existing().ownerUid == request.auth.uid || isAdmin());
+
+      // Synced Wedding Photos
+      match /photos/{photoId} {
+        allow get: if isValidId(eventId)
+          && isValidId(photoId)
+          && (resource.data.isPublished == true || (isSignedIn() && resource.data.ownerUid == request.auth.uid) || isAdmin());
+        allow list: if resource.data.isPublished == true
+          || (isSignedIn() && resource.data.ownerUid == request.auth.uid)
+          || isAdmin();
+        allow create: if isValidId(eventId)
+          && isValidId(photoId)
+          && isEventOwner(eventId)
+          && isValidEventPhoto(incoming(), eventId)
+          && incoming().id == photoId
+          && incoming().ownerUid == request.auth.uid
+          && incoming().syncedAt == request.time;
+        allow update: if isValidId(eventId)
+          && isValidId(photoId)
+          && isEventOwner(eventId)
+          && isValidEventPhoto(incoming(), eventId)
+          && incoming().id == existing().id
+          && incoming().eventId == existing().eventId
+          && incoming().ownerUid == existing().ownerUid
+          && incoming().driveFileId == existing().driveFileId
+          && incoming().syncedAt == existing().syncedAt
+          && (isAdmin() || incoming().diff(existing()).affectedKeys().hasOnly([
+            'faceStatus', 'processingStatus', 'faceCount', 'isPublished',
+            'modelVersion', 'indexedAt', 'width', 'height',
+            'thumbnailUrl', 'storageUrl', 'storagePath', 'thumbnailPath'
+          ]));
+        allow delete: if isValidId(eventId)
+          && isValidId(photoId)
+          && isEventOwner(eventId);
+      }
+
+      // Indexed Face Embeddings (primary subcollection)
+      match /faces/{faceId} {
+        allow get: if isValidId(eventId)
+          && isValidId(faceId)
+          && (resource.data.isPublished == true || (isSignedIn() && resource.data.ownerUid == request.auth.uid) || isAdmin());
+        allow list: if resource.data.isPublished == true
+          || (isSignedIn() && resource.data.ownerUid == request.auth.uid)
+          || isAdmin();
+        allow create: if isValidId(eventId)
+          && isValidId(faceId)
+          && isEventOwner(eventId)
+          && isValidFaceEmbedding(incoming(), eventId)
+          && incoming().id == faceId
+          && incoming().ownerUid == request.auth.uid
+          && incoming().createdAt == request.time
+          && exists(/databases/$(database)/documents/events/$(eventId)/photos/$(incoming().photoId));
+        allow update: if isValidId(eventId)
+          && isValidId(faceId)
+          && isEventOwner(eventId)
+          && isValidFaceEmbedding(incoming(), eventId)
+          && incoming().id == existing().id
+          && incoming().eventId == existing().eventId
+          && incoming().photoId == existing().photoId
+          && incoming().ownerUid == existing().ownerUid
+          && incoming().createdAt == existing().createdAt
+          && incoming().diff(existing()).affectedKeys().hasOnly(['isPublished']);
+        allow delete: if isValidId(eventId)
+          && isValidId(faceId)
+          && isEventOwner(eventId);
+      }
+
+      // Face Embeddings alias subcollection (identical Master Gate protection)
+      match /faceEmbeddings/{faceId} {
+        allow get: if isValidId(eventId)
+          && isValidId(faceId)
+          && (resource.data.isPublished == true || (isSignedIn() && resource.data.ownerUid == request.auth.uid) || isAdmin());
+        allow list: if resource.data.isPublished == true
+          || (isSignedIn() && resource.data.ownerUid == request.auth.uid)
+          || isAdmin();
+        allow create: if isValidId(eventId)
+          && isValidId(faceId)
+          && isEventOwner(eventId)
+          && isValidFaceEmbedding(incoming(), eventId)
+          && incoming().id == faceId
+          && incoming().ownerUid == request.auth.uid
+          && incoming().createdAt == request.time
+          && exists(/databases/$(database)/documents/events/$(eventId)/photos/$(incoming().photoId));
+        allow update: if isValidId(eventId)
+          && isValidId(faceId)
+          && isEventOwner(eventId)
+          && isValidFaceEmbedding(incoming(), eventId)
+          && incoming().id == existing().id
+          && incoming().eventId == existing().eventId
+          && incoming().photoId == existing().photoId
+          && incoming().ownerUid == existing().ownerUid
+          && incoming().createdAt == existing().createdAt
+          && incoming().diff(existing()).affectedKeys().hasOnly(['isPublished']);
+        allow delete: if isValidId(eventId)
+          && isValidId(faceId)
+          && isEventOwner(eventId);
+      }
+
+      // Background Indexing Jobs (strictly owner/admin only)
+      match /indexingJobs/{jobId} {
+        allow get: if isValidId(eventId) && isValidId(jobId) && isEventOwner(eventId);
+        allow list: if isSignedIn() && (resource.data.ownerUid == request.auth.uid || isAdmin());
+        allow create: if isValidId(eventId)
+          && isValidId(jobId)
+          && isEventOwner(eventId)
+          && isValidIndexingJob(incoming(), eventId)
+          && incoming().id == jobId
+          && incoming().ownerUid == request.auth.uid
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && exists(/databases/$(database)/documents/events/$(eventId)/photos/$(incoming().photoId));
+        allow update: if isValidId(eventId)
+          && isValidId(jobId)
+          && isEventOwner(eventId)
+          && isValidIndexingJob(incoming(), eventId)
+          && incoming().id == existing().id
+          && incoming().eventId == existing().eventId
+          && incoming().photoId == existing().photoId
+          && incoming().ownerUid == existing().ownerUid
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly([
+            'status', 'attempts', 'lastError', 'startedAt', 'completedAt', 'updatedAt', 'modelVersion'
+          ]);
+        allow delete: if isValidId(eventId) && isValidId(jobId) && isEventOwner(eventId);
+      }
+
+      // Aggregate non-PII event analytics (strictly owner/admin read/write)
+      match /analytics/{recordId} {
+        allow get: if isValidId(eventId) && isValidId(recordId) && isEventOwner(eventId);
+        allow list: if isSignedIn() && (resource.data.ownerUid == request.auth.uid || isAdmin());
+        allow create: if isValidId(eventId)
+          && isValidId(recordId)
+          && isEventOwner(eventId)
+          && isValidEventAnalytic(incoming(), eventId)
+          && incoming().id == recordId
+          && incoming().ownerUid == request.auth.uid
+          && incoming().updatedAt == request.time;
+        allow update: if isValidId(eventId)
+          && isValidId(recordId)
+          && isEventOwner(eventId)
+          && isValidEventAnalytic(incoming(), eventId)
+          && incoming().id == existing().id
+          && incoming().eventId == existing().eventId
+          && incoming().ownerUid == existing().ownerUid
+          && incoming().metricDate == existing().metricDate
+          && incoming().updatedAt == request.time;
+        allow delete: if isValidId(eventId) && isValidId(recordId) && isEventOwner(eventId);
+      }
+    }
+  }
+}

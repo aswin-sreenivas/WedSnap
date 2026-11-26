@@ -1,0 +1,53 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Global default-deny safety net
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+
+    function isSafeSegment(seg) {
+      return seg is string && seg.size() >= 1 && seg.size() <= 128 && seg.matches('^[a-zA-Z0-9_.\\-]+$');
+    }
+
+    function isEventOwner(eventId) {
+      return isSignedIn()
+        && isSafeSegment(eventId)
+        && firestore.exists(/databases/ai-studio-01a91cff-3af0-434e-90dc-93a0f4f9374e/documents/events/$(eventId))
+        && (
+          firestore.get(/databases/ai-studio-01a91cff-3af0-434e-90dc-93a0f4f9374e/documents/events/$(eventId)).data.ownerUid == request.auth.uid
+          || request.auth.token.email == 'shadowstack.web@gmail.com'
+        );
+    }
+
+    function isEventPublished(eventId) {
+      return isSafeSegment(eventId)
+        && firestore.exists(/databases/ai-studio-01a91cff-3af0-434e-90dc-93a0f4f9374e/documents/events/$(eventId))
+        && firestore.get(/databases/ai-studio-01a91cff-3af0-434e-90dc-93a0f4f9374e/documents/events/$(eventId)).data.isPublished == true;
+    }
+
+    // Event display photographs & thumbnails managed in Firebase Storage
+    match /events/{eventId}/{folder}/{fileName} {
+      allow read: if (folder == 'photos' || folder == 'thumbs')
+        && isSafeSegment(fileName)
+        && (isEventPublished(eventId) || isEventOwner(eventId));
+
+      allow write: if (folder == 'photos' || folder == 'thumbs')
+        && isSafeSegment(fileName)
+        && isEventOwner(eventId)
+        && (
+          request.resource == null
+          || (
+            request.resource.size > 0
+            && request.resource.size <= 15 * 1024 * 1024
+            && request.resource.contentType.matches('image/(jpeg|png|webp)')
+          )
+        );
+    }
+  }
+}
