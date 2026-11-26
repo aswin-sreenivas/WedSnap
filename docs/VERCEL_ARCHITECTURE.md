@@ -3,8 +3,8 @@
 ## 1. Vercel Serverless & CDN Architecture
 - **Frontend SPA (`dist/`)**: Built by Vite + React + TypeScript (`npm run build`), served from Vercel Edge CDN with immutable cache headers on `/assets/*`, `/models/*`, and `/src/assets/*`.
 - **Server-Rendered Metadata (`/api/ssr.ts`)**: Handles `/`, public marketing routes, `/blog/*`, `/e/:slug`, private routes (`noindex, nofollow`), and HTTP `404` unknown routes using `server/generated/index.html` and `server/generated/ssr-manifest.json` emitted during Vite's `closeBundle` hook.
-- **SEO Endpoints**: `/robots.txt` (`/api/seo/robots.ts`) and `/sitemap.xml` (`/api/seo/sitemap.ts`) compute canonical URLs from `APP_URL` / `VERCEL_PROJECT_PRODUCTION_URL`.
-- **API Functions (`/api/**`)**: Isolated Vercel Serverless Functions sharing `/server/lib/*` modules with local `server.ts` (`tsx server.ts`), guaranteeing identical behavior locally and on Vercel without rewriting missing `/api/*` paths to HTML.
+- **SEO Endpoints**: `/robots.txt` and `/sitemap.xml` rewrite to `/api/seo.ts` (`type=robots` / `type=sitemap`), computing canonical URLs from `APP_URL` / `VERCEL_PROJECT_PRODUCTION_URL`.
+- **API Functions (7 total, Hobby-plan compatible)**: Consolidated domain routers (`api/ssr.ts`, `api/seo.ts`, `api/health.ts`, `api/contact.ts`, `api/events.ts`, `api/drive.ts`, `api/media.ts`) sharing `/server/lib/*` modules with local `server.ts` (`tsx server.ts`), routed via `vercel.json` `rewrites` so all existing API paths work unchanged.
 - **Zero Filesystem Persistence**: Contact inquiries persist directly to Cloud Firestore (`/inquiries/{id}`); wedding photos and thumbnails use Google Drive + Firebase Storage (`storage.rules`) rather than local `/storage` files.
 
 ## 2. Cloud Firestore Data Model

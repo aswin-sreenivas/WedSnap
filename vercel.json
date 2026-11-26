@@ -10,11 +10,11 @@
       "memory": 512,
       "includeFiles": "server/generated/**"
     },
-    "api/seo/*.ts": {
+    "api/seo.ts": {
       "maxDuration": 15,
       "memory": 256
     },
-    "api/**/*.ts": {
+    "api/*.ts": {
       "maxDuration": 30,
       "memory": 512
     }
@@ -66,8 +66,22 @@
     }
   ],
   "rewrites": [
-    { "source": "/robots.txt", "destination": "/api/seo/robots" },
-    { "source": "/sitemap.xml", "destination": "/api/seo/sitemap" },
+    { "source": "/robots.txt", "destination": "/api/seo?type=robots" },
+    { "source": "/sitemap.xml", "destination": "/api/seo?type=sitemap" },
+    { "source": "/api/public/events", "destination": "/api/events?action=public-events" },
+    { "source": "/api/public/events/revalidate", "destination": "/api/events?action=public-revalidate" },
+    { "source": "/api/events/:slug/match", "destination": "/api/events?action=match&slug=:slug" },
+    { "source": "/api/jobs/process-pending", "destination": "/api/events?action=jobs-process-pending" },
+    { "source": "/api/drive/oauth/url", "destination": "/api/drive?action=oauth-url" },
+    { "source": "/api/drive/oauth/callback", "destination": "/api/drive?action=oauth-callback" },
+    { "source": "/api/drive/folders", "destination": "/api/drive?action=folders" },
+    { "source": "/api/drive/folders/:folderId/photos", "destination": "/api/drive?action=folder-photos&folderId=:folderId" },
+    { "source": "/api/drive/cache-photo", "destination": "/api/drive?action=cache-photo" },
+    { "source": "/api/drive/files/:fileId", "destination": "/api/drive?action=file&fileId=:fileId" },
+    { "source": "/api/media/upload-photo", "destination": "/api/media?action=upload-photo" },
+    { "source": "/api/media/events/:eventId/session-token", "destination": "/api/media?action=session-token&eventId=:eventId" },
+    { "source": "/api/media/events/:eventId/photos/:photoId", "destination": "/api/media?action=photo&eventId=:eventId&photoId=:photoId" },
+    { "source": "/api/media/events/:eventId", "destination": "/api/media?action=delete-event&eventId=:eventId" },
     { "source": "/", "destination": "/api/ssr?path=/" },
     {
       "source": "/((?!api/|assets/|models/|src/assets/|favicon\\.svg|manifest\\.webmanifest).*)",

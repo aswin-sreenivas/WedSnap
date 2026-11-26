@@ -7,22 +7,10 @@ import dotenv from 'dotenv';
 import { createServer as createViteServer, ViteDevServer } from 'vite';
 import healthHandler from './api/health';
 import contactHandler from './api/contact';
-import publicEventsHandler from './api/public/events';
-import revalidateEventsHandler from './api/public/events/revalidate';
-import driveFoldersHandler from './api/drive/folders';
-import driveFolderPhotosHandler from './api/drive/folders/[folderId]/photos';
-import driveCachePhotoHandler from './api/drive/cache-photo';
-import driveFileProxyHandler from './api/drive/files/[fileId]';
-import driveOauthUrlHandler from './api/drive/oauth/url';
-import driveOauthCallbackHandler from './api/drive/oauth/callback';
-import uploadPhotoHandler from './api/media/upload-photo';
-import sessionTokenHandler from './api/media/events/[eventId]/session-token';
-import deleteEventMediaHandler from './api/media/events/[eventId]/index';
-import servePhotoHandler from './api/media/events/[eventId]/photos/[photoId]';
-import matchFacesHandler from './api/events/[slug]/match';
-import processPendingJobsHandler from './api/jobs/process-pending';
-import robotsHandler from './api/seo/robots';
-import sitemapHandler from './api/seo/sitemap';
+import eventsHandler from './api/events';
+import driveHandler from './api/drive';
+import mediaHandler from './api/media';
+import seoHandler from './api/seo';
 import { getCanonicalOrigin } from './server/lib/security';
 import { buildRouteHtml, loadProductionSsrTemplate } from './server/lib/ssrHtml';
 import type { ApiRequest, ApiResponse } from './server/lib/vercelTypes';
@@ -101,34 +89,34 @@ async function startServer() {
     next();
   });
 
-  // Serverless-parity API routes (identical handlers deployed on Vercel under /api/**)
+  // Serverless-parity API routes (identical handlers deployed on Vercel under /api/*.ts)
   app.all('/api/health', adapt(healthHandler));
   app.all('/api/contact', adapt(contactHandler));
-  app.all('/api/public/events', adapt(publicEventsHandler));
-  app.all('/api/public/events/revalidate', adapt(revalidateEventsHandler));
+  app.all('/api/public/events', adapt(eventsHandler));
+  app.all('/api/public/events/revalidate', adapt(eventsHandler));
 
-  app.all('/api/drive/folders', adapt(driveFoldersHandler));
-  app.all('/api/drive/folders/:folderId/photos', adapt(driveFolderPhotosHandler));
-  app.all('/api/drive/cache-photo', adapt(driveCachePhotoHandler));
-  app.all('/api/drive/files/:fileId', adapt(driveFileProxyHandler));
-  app.all('/api/drive/oauth/url', adapt(driveOauthUrlHandler));
-  app.all('/api/drive/oauth/callback', adapt(driveOauthCallbackHandler));
+  app.all('/api/drive/folders', adapt(driveHandler));
+  app.all('/api/drive/folders/:folderId/photos', adapt(driveHandler));
+  app.all('/api/drive/cache-photo', adapt(driveHandler));
+  app.all('/api/drive/files/:fileId', adapt(driveHandler));
+  app.all('/api/drive/oauth/url', adapt(driveHandler));
+  app.all('/api/drive/oauth/callback', adapt(driveHandler));
 
-  app.all('/api/media/upload-photo', adapt(uploadPhotoHandler));
-  app.all('/api/media/events/:eventId/session-token', adapt(sessionTokenHandler));
-  app.all('/api/media/events/:eventId', adapt(deleteEventMediaHandler));
-  app.all('/api/media/events/:eventId/photos/:photoId', adapt(servePhotoHandler));
+  app.all('/api/media/upload-photo', adapt(mediaHandler));
+  app.all('/api/media/events/:eventId/session-token', adapt(mediaHandler));
+  app.all('/api/media/events/:eventId', adapt(mediaHandler));
+  app.all('/api/media/events/:eventId/photos/:photoId', adapt(mediaHandler));
 
-  app.all('/api/events/:slug/match', adapt(matchFacesHandler));
-  app.all('/api/jobs/process-pending', adapt(processPendingJobsHandler));
+  app.all('/api/events/:slug/match', adapt(eventsHandler));
+  app.all('/api/jobs/process-pending', adapt(eventsHandler));
 
   // Explicit 404 for unknown /api/* endpoints (never return SPA HTML 200)
   app.all('/api/*', (_req, res) => {
     res.status(404).json({ error: 'API endpoint not found.' });
   });
 
-  app.get('/robots.txt', adapt(robotsHandler));
-  app.get('/sitemap.xml', adapt(sitemapHandler));
+  app.get('/robots.txt', adapt(seoHandler));
+  app.get('/sitemap.xml', adapt(seoHandler));
 
   if (fs.existsSync(MODELS_DIR)) {
     app.use('/models', express.static(MODELS_DIR, { maxAge: '7d', immutable: true }));
